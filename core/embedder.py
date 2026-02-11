@@ -22,3 +22,19 @@ class Embedder:
         """
         score = util.cos_sim(embedding_a, embedding_b)
         return float(score.item())
+    def get_chunked_embedding(self, text: str, chunk_size: int = 500, overlap: int = 50):
+        """
+        Splits long resumes into overlapping chunks to stay within token limits.
+        Returns a single 'mean' vector representing the entire document.
+        """
+        words = text.split()
+        chunks = [
+            " ".join(words[i : i + chunk_size]) 
+            for i in range(0, len(words), chunk_size - overlap)
+        ]
+        
+        # Get embeddings for all chunks
+        chunk_embeddings = self.model.encode(chunks, convert_to_tensor=True)
+        
+        # Mean Pooling: Average all chunk vectors into one "Document Vector"
+        return torch.mean(chunk_embeddings, dim=0)
