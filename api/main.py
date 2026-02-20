@@ -19,7 +19,8 @@ async def match_resume(
     
     # 2. Parse
     resume_data = parser.extract_from_bytes(file_bytes, resume_file.filename)
-    
+    #2.5 get gemini analysis
+    analysis = analyzer.analyze_gap(resume_data.raw_text, job_description)
     # 3. Embed & Compare (Using our new Chunking logic!)
     resume_vec = embedder.get_chunked_embedding(resume_data.raw_text)
     job_vec = embedder.get_embedding(job_description)
@@ -29,7 +30,7 @@ async def match_resume(
     return {
         "filename": resume_file.filename,
         "match_score": round(score * 100, 2),
-        "pages": resume_data.page_count,
+        "analysis":analysis,
         "status": "success"
     }
 
