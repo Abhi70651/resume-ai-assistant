@@ -2,12 +2,14 @@ from fastapi import FastAPI, UploadFile, File, Form
 from core.parser import ResumeParser
 from core.embedder import Embedder
 import uvicorn
+from core.analyzer import ResumeAnalyzer
 
 app = FastAPI(title="AI Resume Matcher API")
 
 # Initialize our "Services" once at startup
 parser = ResumeParser()
 embedder = Embedder()
+analyzer = ResumeAnalyzer()
 
 @app.post("/match")
 async def match_resume(
