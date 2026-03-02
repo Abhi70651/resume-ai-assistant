@@ -3,6 +3,7 @@ from core.parser import ResumeParser
 from core.embedder import Embedder
 import uvicorn
 from core.analyzer import ResumeAnalyzer
+from core.vector_store import VectorStore
 
 app = FastAPI(title="AI Resume Matcher API")
 
@@ -10,6 +11,7 @@ app = FastAPI(title="AI Resume Matcher API")
 parser = ResumeParser()
 embedder = Embedder()
 analyzer = ResumeAnalyzer()
+v_store=VectorStore()
 
 @app.post("/match")
 async def match_resume(
@@ -28,7 +30,11 @@ async def match_resume(
     job_vec = embedder.get_embedding(job_description)
     
     score = embedder.compute_similarity(resume_vec, job_vec)
-    
+    v_store.add_resume(
+        resume_id=resume_file.filename, 
+        embedding=resume_vec, 
+        text=resume_data.raw_text
+    )
     return {
         "filename": resume_file.filename,
         "match_score": round(score * 100, 2),

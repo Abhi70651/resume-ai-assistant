@@ -47,15 +47,15 @@ if analyze_btn:
                     # 4. Detailed Breakdown
                     c1, c2 = st.columns(2)
                     with c1:
-                        st.success("✅ **Profile Strengths**")
-                        for strength in analysis.get("profile_strengths", []):
-                            st.write(f"- {strength}")
+                        st.info(" **Action Plan to Match**")
+                        for step in analysis.get("action_plan", []):
+                            st.write(f"- {step}")
                             
                     with c2:
-                        st.warning("⚠️ **Missing Skills / Gaps**")
+                        st.warning("**Missing Skills**")
                         for gap in analysis.get("missing_skills", []):
                             st.write(f"- {gap}")
-
+                    st.success(f"**Most Relevant Experience:** {analysis.get('relevant_experience')}")
                 else:
                     st.error("API Error: Could not process the request.")
 

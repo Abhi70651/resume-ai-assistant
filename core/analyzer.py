@@ -13,26 +13,47 @@ class ResumeAnalyzer:
         self.model = genai.GenerativeModel('gemini-1.5-flash')
 
     def analyze_gap(self, resume_text: str, job_description: str):
-        prompt = f"""
-        You are an expert Technical Recruiter. Analyze the following Resume against the Job Description.
+        # The System Instruction sets the "Behavioral Guardrails"
+        system_instruction = (
+            "You are a Senior Technical Recruiter at a Top-Tier Tech Firm. "
+            "Your goal is to provide blunt, honest, and actionable feedback. "
+            "You must output valid JSON only."
+        )
         
-        Resume: {resume_text}
-        Job Description: {job_description}
+        # The User Prompt contains the dynamic data
+        user_prompt = f"""
+        Analyze this candidate for the following role:
         
-        Provide a response strictly in JSON format with these keys:
-        - match_summary: (A 2-sentence overview of the fit)
-        - missing_skills: (List of 3-5 technical skills present in JD but missing in Resume)
-        - profile_strengths: (List of top 3 strengths)
+        [JOB DESCRIPTION]
+        {job_description}
+        
+        [CANDIDATE RESUME]
+        {resume_text}
+        
+        Return a JSON object with these EXACT keys:
+        1. "fit_score_explanation": A concise explanation of why they got their score.
+        2. "missing_skills": A list of technical skills found in the JD but not the resume.
+        3. "action_plan": A list of 3 specific steps the candidate can take to improve this resume (e.g., 'Add a project using X').
+        4. "relevant_experience": Identify the most relevant previous project from their resume for this specific job.
         """
         
         try:
-            response = self.model.generate_content(prompt)
-            # Standardizing the response - Gemini sometimes wraps JSON in markdown ```json
-            clean_json = response.text.replace("```json", "").replace("```", "").strip()
-            return json.loads(clean_json)
+            # We use the 'parts' format for better structure
+            response = self.model.generate_content([
+                {"role": "user", "parts": [system_instruction + "\n\n" + user_prompt]}
+            ])
+            
+            # Use a more robust JSON extraction
+            content = response.text.strip()
+            if "```json" in content:
+                content = content.split("```json")[1].split("```")[0].strip()
+            
+            return json.loads(content)
         except Exception as e:
+            print(f"Gemini Analysis Error: {e}")
             return {
-                "match_summary": "Error analyzing feedback.",
+                "fit_score_explanation": "Could not generate analysis.",
                 "missing_skills": [],
-                "profile_strengths": []
+                "action_plan": ["Review JD manually"],
+                "relevant_experience": "N/A"
             }
