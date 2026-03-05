@@ -61,3 +61,20 @@ if analyze_btn:
 
             except Exception as e:
                 st.error(f"Connection Error: Is the FastAPI server running? \n({e})")
+st.header("Batch Candidate Ranking")
+multi_files = st.file_uploader("Upload Multiple Resumes", type=["pdf"], accept_multiple_files=True)
+
+if st.button("Rank Candidates") and multi_files:
+    with st.spinner("Ranking candidates..."):
+        # Prepare files for the multipart request
+        files = [("resume_files", (f.name, f.getvalue(), "application/pdf")) for f in multi_files]
+        data = {"job_description": job_desc}
+        
+        response = requests.post("http://127.0.0.1:8000/rank", data=data, files=files)
+        
+        if response.status_code == 200:
+            rankings = response.json()["rankings"]
+            # Display as a nice table
+            st.table(rankings)
+        else:
+            st.error("Failed to rank resumes.")

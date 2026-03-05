@@ -4,6 +4,7 @@ from core.embedder import Embedder
 import uvicorn
 from core.analyzer import ResumeAnalyzer
 from core.vector_store import VectorStore
+from typing import List
 
 app = FastAPI(title="AI Resume Matcher API")
 
@@ -42,5 +43,31 @@ async def match_resume(
         "status": "success"
     }
 
+@app.post("/rank")
+async def rank_resumes(
+    job_description: str = Form(...),
+    resume_files: List[UploadFile] = File(...)
+):
+    results = []
+    job_vec = embedder.get_embedding(job_description)
+
+    for file in resume_files:
+        content = await file.read()
+        # 1. Extract
+        resume_data = parser.extract_from_bytes(content, file.filename)
+        # 2. Embed (using chunking for accuracy)
+        resume_vec = embedder.get_chunked_embedding(resume_data.raw_text)
+        # 3. Score
+        score = embedder.compute_similarity(resume_vec, job_vec)
+        
+        results.append({
+            "filename": file.filename,
+            "score": round(score * 100, 2)
+        })
+    
+    # 4. Sort by score (Highest first)
+    ranked_results = sorted(results, key=lambda x: x['score'], reverse=True)
+    
+    return {"rankings": ranked_results}
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
