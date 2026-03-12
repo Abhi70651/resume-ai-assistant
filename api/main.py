@@ -1,4 +1,5 @@
 from fastapi import FastAPI, UploadFile, File, Form
+from core.security import SecurityGuard, logger
 from core.parser import ResumeParser
 from core.embedder import Embedder
 import uvicorn
@@ -19,23 +20,37 @@ async def match_resume(
     job_description: str = Form(...),
     resume_file: UploadFile = File(...)
 ):
-    # 1. Read the uploaded PDF
-    file_bytes = await resume_file.read()
+    logger.info(f"Processing request for file: {resume_file.filename}")
     
-    # 2. Parse
-    resume_data = parser.extract_from_bytes(file_bytes, resume_file.filename)
-    #2.5 get gemini analysis
-    analysis = analyzer.analyze_gap(resume_data.raw_text, job_description)
-    # 3. Embed & Compare (Using our new Chunking logic!)
-    resume_vec = embedder.get_chunked_embedding(resume_data.raw_text)
-    job_vec = embedder.get_embedding(job_description)
-    
-    score = embedder.compute_similarity(resume_vec, job_vec)
-    v_store.add_resume(
-        resume_id=resume_file.filename, 
-        embedding=resume_vec, 
-        text=resume_data.raw_text
-    )
+    try:
+        content = await resume_file.read()
+        
+        # 1. Security Check: File Size
+        SecurityGuard.validate_file_size(content)
+        
+        # 2. Extract & Sanitize
+        resume_data = parser.extract_from_bytes(content, resume_file.filename)
+        safe_resume_text = SecurityGuard.sanitize_input(resume_data.raw_text)
+        # 1. Read the uploaded PDF
+        file_bytes = await resume_file.read()
+        
+        # 2. Parse
+        resume_data = parser.extract_from_bytes(file_bytes, resume_file.filename)
+        #2.5 get gemini analysis
+        analysis = analyzer.analyze_gap(resume_data.raw_text, job_description)
+        # 3. Embed & Compare (Using our new Chunking logic!)
+        resume_vec = embedder.get_chunked_embedding(resume_data.raw_text)
+        job_vec = embedder.get_embedding(job_description)
+        
+        score = embedder.compute_similarity(resume_vec, job_vec)
+        v_store.add_resume(
+            resume_id=resume_file.filename, 
+            embedding=resume_vec, 
+            text=resume_data.raw_text
+        )
+    except Exception as e:
+        logger.error(f"Failed to process {resume_file.filename}: {str(e)}")
+        return {"error": "Internal processing error", "status": "failed"}
     return {
         "filename": resume_file.filename,
         "match_score": round(score * 100, 2),
@@ -71,3 +86,24 @@ async def rank_resumes(
     return {"rankings": ranked_results}
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
+
+
+@app.post("/match")
+async def match_resume(job_description: str = Form(...), resume_file: UploadFile = File(...)):
+    logger.info(f"Processing request for file: {resume_file.filename}")
+    
+    try:
+        content = await resume_file.read()
+        
+        # 1. Security Check: File Size
+        SecurityGuard.validate_file_size(content)
+        
+        # 2. Extract & Sanitize
+        resume_data = parser.extract_from_bytes(content, resume_file.filename)
+        safe_resume_text = SecurityGuard.sanitize_input(resume_data.raw_text)
+        
+        # ... rest of the embedding and analysis logic ...
+        
+    except Exception as e:
+        logger.error(f"Failed to process {resume_file.filename}: {str(e)}")
+        return {"error": "Internal processing error", "status": "failed"}
