@@ -1,9 +1,10 @@
 import streamlit as st
 import requests
+import os
 
 st.set_page_config(page_title="AI Resume Matcher", page_icon="📄", layout="wide")
 
-st.title("🚀 AI Resume Screening & Job Match Assistant")
+st.title("AI Resume Screening & Job Match Assistant")
 st.markdown("---")
 
 # 1. Sidebar for Inputs
@@ -25,7 +26,9 @@ if analyze_btn:
                 data = {"job_description": job_desc}
                 
                 # Call our FastAPI backend
-                response = requests.post("http://127.0.0.1:8000/match", data=data, files=files)
+                BACKEND_URL = os.getenv("BACKEND_URL", "http://127.0.0.1:8000")
+                
+                response = requests.post(f"{BACKEND_URL}/match", data=data, files=files)
                 result = response.json()
 
                 if response.status_code == 200:
