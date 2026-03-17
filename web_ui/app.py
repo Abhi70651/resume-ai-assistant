@@ -5,8 +5,14 @@ import os
 st.set_page_config(page_title="AI Resume Matcher", page_icon="📄", layout="wide")
 
 st.title("AI Resume Screening & Job Match Assistant")
-st.markdown("---")
 
+st.markdown("""
+    <style>
+    .main { background-color: #f5f7f9; }
+    .stButton>button { width: 100%; border-radius: 5px; height: 3em; background-color: #007bff; color: white; }
+    .reportview-container .main .block-container { padding-top: 2rem; }
+    </style>
+    """, unsafe_allow_html=True)
 # 1. Sidebar for Inputs
 with st.sidebar:
     st.header("Upload Details")
@@ -81,3 +87,18 @@ if st.button("Rank Candidates") and multi_files:
             st.table(rankings)
         else:
             st.error("Failed to rank resumes.")
+            
+if response.status_code == 200:
+    # After showing results, add an Export feature
+    st.markdown("---")
+    report_text = f"ANALYSIS REPORT\n{'='*20}\n"
+    report_text += f"Candidate: {uploaded_file.name}\n"
+    report_text += f"Match Score: {result['match_score']}%\n\n"
+    report_text += f"Summary: {analysis.get('match_summary')}\n"
+    
+    st.download_button(
+        label="📥 Download Candidate Report",
+        data=report_text,
+        file_name=f"{uploaded_file.name}_analysis.txt",
+        mime="text/plain"
+    )
