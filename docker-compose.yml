@@ -1,19 +1,19 @@
 services:
   backend:
-    build: .
-    dockerfile: backend.Dockerfile
-    ports:
-      - "8000:8000"
+    build:
+      context: .
+      dockerfile: backend.Dockerfile
+    network_mode: host  # <--- This is the magic line
     env_file: .env
     volumes:
       - ./data:/app/data
 
   frontend:
-    build: .
-    dockerfile: frontend.Dockerfile
-    ports:
-      - "8501:8501"
+    build:
+      context: .
+      dockerfile: frontend.Dockerfile
+    network_mode: host  # <--- This is the magic line
     environment:
-      - BACKEND_URL=http://backend:8000
+      - BACKEND_URL=http://127.0.0.1:8000 # Use 127.0.0.1 since we're on the host network
     depends_on:
       - backend
