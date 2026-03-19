@@ -6,3 +6,8 @@ pymupdf
 sentence-transformers
 google-generativeai
 pydantic
+fpdf2
+faiss-cpu
+loguru
+torch
+requests

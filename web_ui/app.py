@@ -88,17 +88,24 @@ if st.button("Rank Candidates") and multi_files:
         else:
             st.error("Failed to rank resumes.")
             
-if response.status_code == 200:
-    # After showing results, add an Export feature
-    st.markdown("---")
-    report_text = f"ANALYSIS REPORT\n{'='*20}\n"
-    report_text += f"Candidate: {uploaded_file.name}\n"
-    report_text += f"Match Score: {result['match_score']}%\n\n"
-    report_text += f"Summary: {analysis.get('match_summary')}\n"
-    
-    st.download_button(
-        label="📥 Download Candidate Report",
-        data=report_text,
-        file_name=f"{uploaded_file.name}_analysis.txt",
-        mime="text/plain"
-    )
+if analyze_btn:
+    if not job_desc or not uploaded_file:
+        st.error("Please provide both details.")
+    else:
+        with st.spinner("AI is analyzing..."):
+            response = None # Initialize to avoid NameError
+            try:
+                files = {"resume_file": (uploaded_file.name, uploaded_file.getvalue(), "application/pdf")}
+                data = {"job_description": job_desc}
+                
+                response = requests.post(f"{BACKEND_URL}/match", data=data, files=files)
+                
+                # Only check status_code if response actually exists
+                if response is not None and response.status_code == 200:
+                    result = response.json()
+                    # ... rest of your display logic ...
+                else:
+                    st.error(f"Backend returned an error: {response.status_code if response else 'No Response'}")
+
+            except Exception as e:
+                st.error(f"Connection Error: {e}")
